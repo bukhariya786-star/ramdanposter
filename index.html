@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="UTF-8">
+<title>Donation Receipt</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+<link href="https://fonts.googleapis.com/css2?family=Manjari:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+/* ===== GLOBAL ===== */
+body{
+  margin:0;
+  padding:0;
+  background:#eee;
+  font-family:'Manjari',sans-serif;
+  overflow-x:hidden;
+}
+
+/* ===== CONTROLS ===== */
+.controls{
+  text-align:center;
+  padding:12px 8px;
+}
+.controls input{
+  padding:10px;
+  width:220px;
+  font-size:16px;
+}
+.controls button{
+  padding:10px 16px;
+  margin:6px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:15px;
+}
+.search{background:#0b7d5c;color:#fff;}
+.new{background:#555;color:#fff;}
+.jpg{background:#1f7ae0;color:#fff;}
+
+/* ===== VIEWER ===== */
+.viewer{
+  width:100%;
+  display:flex;
+  justify-content:center;
+  overflow:hidden;
+}
+
+/* ===== RESPONSIVE WRAPPER ===== */
+.receipt-wrap{
+  width:100%;
+  max-width:420px;
+  margin:0 auto;
+}
+
+/* ===== RECEIPT ===== */
+#receipt{
+  position:relative;
+  width:794px;
+  height:1123px;
+  background:none;
+  transform-origin:top center;
+}
+
+/* ===== BACKGROUND ONLY FOR DOWNLOAD ===== */
+#receipt.export{
+  background:url("background.png") no-repeat center;
+  background-size:cover;
+}
+
+/* ===== TEXT ===== */
+.field{
+  position:absolute;
+}
+
+/* ===== HIDDEN INITIALLY ===== */
+.hidden{display:none;}
+
+#amount{
+  top:120px;
+  left:140px;
+  font-size:72px;
+  font-weight:700;
+  color:#111;
+}
+
+/* 🔹 WHITE COLOR FOR RESPECT + NAME */
+#respect{
+  top:300px;
+  left:120px;
+  width:600px;
+  font-size:28px;
+  font-weight:700;
+  color:#fff;
+}
+#donorName{
+  font-size:30px;
+  font-weight:700;
+  color:#fff;
+}
+
+#rno{
+  top:360px;
+  left:120px;
+  font-size:18px;
+  font-weight:700;
+  color:#111;
+}
+
+/* 🔹 LIGHT GREEN DATE */
+#date{
+  bottom:230px;
+  right:160px;
+  font-size:13pt;
+  font-weight:700;
+  color:#7CFF9B;
+}
+
+#signature{
+  position:absolute;
+  bottom:210px;
+  left:140px;
+  width:160px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="controls">
+  <input id="searchInput" placeholder="Receipt No">
+  <br>
+  <button class="search" onclick="searchReceipt()">Search</button>
+  <button class="new" onclick="location.reload()">New Search</button>
+  <button class="jpg" onclick="downloadJPG()">Auto JPG Download</button>
+</div>
+
+<div class="viewer">
+  <div class="receipt-wrap">
+    <div id="receipt">
+
+      <div class="field hidden" id="amount"></div>
+
+      <div class="field hidden" id="respect">
+        ബഹുമാനപ്പെട്ട <span id="donorName"></span>
+      </div>
+
+      <div class="field hidden" id="rno"></div>
+      <div class="field hidden" id="date"></div>
+
+      <img id="signature" class="hidden" src="signature.png">
+
+    </div>
+  </div>
+</div>
+
+<script>
+const TSV_URL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vTZ8eds0WN4CIw_NGL_Mkwqb_TZjy0kboUITykRTdsvC_VGIwGFYXHNbGPMOEpfSVyb3QOB-aUJ3iaI/pub?gid=0&single=true&output=tsv";
+
+/* ===== AUTO FIT ===== */
+function fitReceipt(){
+  const wrap=document.querySelector(".receipt-wrap");
+  const receipt=document.getElementById("receipt");
+  if(!wrap || !receipt) return;
+  receipt.style.transform="scale("+wrap.offsetWidth/794+")";
+}
+window.addEventListener("load",fitReceipt);
+window.addEventListener("resize",fitReceipt);
+
+/* ===== SEARCH ===== */
+async function searchReceipt(){
+  const no=searchInput.value.trim();
+  if(!no){alert("Receipt No നൽകുക");return;}
+
+  const res=await fetch(TSV_URL);
+  const rows=(await res.text()).split("\n");
+
+  for(let i=1;i<rows.length;i++){
+    const c=rows[i].split("\t");
+    if(c[0].trim()===no){
+
+      amount.innerText = c[3];
+      donorName.innerText = c[2];
+      rno.innerText = "Receipt No : " + c[0];
+
+      /* 🔹 AUTO CURRENT DATE */
+      const today = new Date().toLocaleDateString('en-GB');
+      date.innerText = "Date : " + today;
+
+      document.querySelectorAll(".hidden")
+        .forEach(e=>e.classList.remove("hidden"));
+      return;
+    }
+  }
+  alert("Receipt not found");
+}
+
+/* ===== JPG DOWNLOAD ===== */
+function downloadJPG(){
+  const r=document.getElementById("receipt");
+  const old=r.style.transform;
+
+  r.classList.add("export");
+  r.style.transform="none";
+
+  html2canvas(r,{scale:2,useCORS:true}).then(c=>{
+    const a=document.createElement("a");
+    a.download="Donation_Receipt.jpg";
+    a.href=c.toDataURL("image/jpeg",1);
+    a.click();
+
+    r.classList.remove("export");
+    r.style.transform=old;
+    fitReceipt();
+  });
+}
+</script>
+
+</body>
+</html>
